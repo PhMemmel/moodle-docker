@@ -16,3 +16,5 @@ services:
       MYSQL_USER: moodle
       MYSQL_PASSWORD: "m@0dl3ing"
       MYSQL_DATABASE: moodle
+    ports:
+      - 3306:3306
