@@ -1,0 +1,32 @@
+#!/bin/bash
+# Wrapper script that acts as a PHP binary but executes inside the moodle-docker container.
+# Configure this as "PHP Interpreter" in PhpStorm (Local interpreter, custom path).
+
+source /home/pypo/moodle-docker/variables.sh
+export ASSETDIR=/home/pypo/moodle-docker/assets
+
+# Check if any argument is a file that exists locally but won't exist in the container.
+# In that case, pipe the file content via stdin.
+ARGS=()
+STDIN_FILE=""
+for arg in "$@"; do
+    # Translate moodle paths to container paths.
+    arg="${arg/\/home\/pypo\/vanillamoodle/\/var\/www\/html}"
+
+    # Detect PhpStorm helper scripts or other local temp files.
+    # These need to be piped via stdin since they don't exist in the container.
+    if [[ -f "$arg" && "$arg" != /var/www/html/* ]]; then
+        STDIN_FILE="$arg"
+    else
+        ARGS+=("$arg")
+    fi
+done
+
+if [[ -n "$STDIN_FILE" ]]; then
+    # Pipe the local file content into PHP via stdin inside the container.
+    /home/pypo/moodle-docker/bin/moodle-docker-compose exec -T -e XDEBUG_MODE=off webserver php "${ARGS[@]}" < "$STDIN_FILE"
+    exit $?
+fi
+
+/home/pypo/moodle-docker/bin/moodle-docker-compose exec -T -e XDEBUG_MODE=off webserver php "${ARGS[@]}"
+exit $?
